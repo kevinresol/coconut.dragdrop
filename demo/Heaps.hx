@@ -42,15 +42,49 @@ typedef MyResult = {
 }
 
 class Dummy extends coconut.h2d.View {
-	@:skipCheck @:attr var manager:Manager<MyItem, MyResult, Interactive>;
+	@:attr var manager:Manager<MyItem, MyResult, PureInteractive>;
+	@:computed var model:DraggableModel<MyItem, MyResult, {final x:Int; final y:Int; final item:MyItem;}, PureInteractive> = {
+		var last = tink.s2d.Point.xy(0, 0);
+		new DraggableModel({
+			type: 'FOO', 
+			manager: manager, 
+			canDrag: () -> true,
+			onDragStart: () -> {foo: 'bar'},
+			onDragEnd: ctx -> last = ctx.getSourceClientOffset(),
+			isDragging: item -> item != null,
+			collect: ctx -> {
+				final pos = switch ctx.getSourceClientOffset() {
+					case null: last;
+					case v: v;
+				}
+				{x: Std.int(pos.x), y: Std.int(pos.y), item: ctx.getItem()}
+			}
+		});
+	}
+		
+		
 	function render() '
 		<Draggable
-			manager=${manager}
-			type="FOO"
-			canDrag=${() -> true}
-			onDragStart=${() -> {foo: 'bar'}}
-			onDragEnd=${() -> trace('end')}
-			isDragging=${item -> item != null}
+			model=${model}
+			renderChildren=${(ref, attrs) -> (
+				<Interactive x=${attrs.x} y=${attrs.y} width=${100} height=${20} backgroundColor=${attrs.item == null ? 0xFFCCCCCC : 0xFFFFFF22} onClick=${trace('clicked')} ref=${ref}>
+					<Text
+						x=${50} 
+						y=${2} 
+						font=${hxd.res.DefaultFont.get()} 
+						// text=${model.sourceId + ':' + model.type + ':' + (model.connection == null) + ':' + model.manager.getMonitor().isDragging()}
+						text=${'Dragging: ' + (attrs.item == null ? 'false' : attrs.item.foo)}
+						textAlign=${Center}
+						textColor=${0}
+					/>
+				</Interactive>
+			)}
 		/>
 	';
+	
+	override function viewWillUnmount() {
+		model.dispose();
+	}
 }
+
+@:observable abstract PureInteractive(Interactive) from Interactive to Interactive {}
