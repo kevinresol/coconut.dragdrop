@@ -1,0 +1,7 @@
+-cp demo
+-main Heaps
+-js bin/demo/heaps/index.js
+
+-lib coconut.h2d
+-lib coconut.dragdrop
+-lib why-dragdrop

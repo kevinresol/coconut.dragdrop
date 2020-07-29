@@ -1,0 +1,6 @@
+# @install: lix --silent download "gh://github.com/MVCoconut/coconut.h2d#9790c0d3e8e766b5952a2d47849b99ffddb661fe" into coconut.h2d/0.0.0/github/9790c0d3e8e766b5952a2d47849b99ffddb661fe
+-lib coconut.diffing
+-lib heaps
+-cp ${HAXE_LIBCACHE}/coconut.h2d/0.0.0/github/9790c0d3e8e766b5952a2d47849b99ffddb661fe/src
+-D coconut.h2d=0.0.0
+--macro coconut.h2d.macros.Setup.all()
