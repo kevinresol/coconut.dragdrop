@@ -28,100 +28,129 @@ class Heaps extends hxd.App {
 }
 
 typedef MyItem = {
-	final foo:String;
+	final color:Int;
 }
 
 typedef MyResult = {
 	final bar:String;
 }
 
-class Dummy extends coconut.h2d.View {
+class Drag extends coconut.h2d.View {
 	@:attr var manager:Manager<MyItem, MyResult, PureInteractive>;
-	@:computed var draggable:DraggableModel<MyItem, MyResult, {final x:Int; final y:Int; final item:MyItem;}, PureInteractive> = {
+	@:attr var item:MyItem;
+	@:attr var type:String;
+	@:computed var draggable:DraggableModel<MyItem, MyResult, {final x:Int; final y:Int; final isDragging:Bool; final item:MyItem;}, PureInteractive> = {
 		var last = tink.s2d.Point.xy(0, 0);
-		trace('new draggable');
 		new DraggableModel({
-			type: 'FOO', 
+			type: type, 
 			manager: manager, 
-			canDrag: () -> true,
-			onDragStart: () -> {foo: 'bar'},
+			canDrag: ctx -> true,
+			onDragStart: ctx -> {
+				trace(item);
+				item;
+			},
 			onDragEnd: ctx -> {
-				trace(ctx.getDropResult());
 				switch ctx.getSourcePosition() {
 					case null: // skip
 					case v: last = v;
 				}
 			},
-			isDragging: item -> item != null,
-			collect: ctx -> {
-				final pos = switch ctx.getSourcePosition() {
-					case null: last;
-					case v: last = v;
-				}
-				{x: Std.int(pos.x), y: Std.int(pos.y), item: ctx.getItem()}
-			}
-		});
-	}
-	@:computed var droppable:DroppableModel<MyItem, MyResult, {final isOver:Bool;}, PureInteractive> = {
-		var model:DroppableModel<MyItem, MyResult, {final isOver:Bool;}, PureInteractive> = null;
-		model = new DroppableModel({
-			type: 'FOO', 
-			manager: manager, 
-			canDrop: item -> true,
-			onHover: item -> trace('hover'),
-			onDrop: item -> {
-				trace('drop');
-				{bar: 'baz'}
+			isDragging: ctx -> switch ctx.getItem() {
+				case null: false;
+				case v: v.color == item.color;
 			},
 			collect: ctx -> {
-				{isOver: ctx.getTargetIds().contains(model.targetId) && ctx.canDropOnTarget(model.targetId)}
+				
+				final pos = switch ctx.getSourcePosition() {
+					case null: last;
+					case v: if(ctx.isDragging()) last = v else last;
+				}
+				{x: Std.int(pos.x), y: Std.int(pos.y), isDragging: ctx.isDragging(), item: ctx.getItem()}
 			}
 		});
-		model;
 	}
-		
-		
+	
 	function render() '
-		<>
-		<Droppable
-			model=${droppable}
-			renderChildren=${(ref, attrs) -> (
-				<Interactive x=${100} y=${100} width=${100} height=${20} backgroundColor=${attrs.isOver ? 0xFFCCCCCC : 0xFF2222FF} onClick=${trace('clicked')} ref=${ref}>
-					<Text
-						x=${50} 
-						y=${2} 
-						font=${hxd.res.DefaultFont.get()} 
-						text="Target"
-						textAlign=${Center}
-						textColor=${0}
-					/>
-				</Interactive>
-			)}
-		/>
 		<Draggable
 			model=${draggable}
 			renderChildren=${(ref, attrs) -> (
-				<Interactive x=${attrs.x} y=${attrs.y} width=${100} height=${20} backgroundColor=${attrs.item == null ? 0xFFCCCCCC : 0xFFFFFF22} onClick=${trace('clicked')} ref=${ref}>
+				<Interactive x=${attrs.x} y=${attrs.y} width=${100} height=${20} backgroundColor=${attrs.isDragging ? attrs.item.color : 0xFF555555} onClick=${trace('clicked')} ref=${ref}>
 					<Text
 						x=${50} 
 						y=${2} 
 						font=${hxd.res.DefaultFont.get()} 
-						text=${'Dragging: ' + (attrs.item == null ? 'false' : attrs.item.foo)}
+						text=${'Dragging: ${attrs.isDragging}'}
 						textAlign=${Center}
-						textColor=${0}
+						textColor=${attrs.isDragging ? 0 : (item.color | 0xFF777777)}
 					/>
 				</Interactive>
 			)}
 		/>
-		
-		
-		</>
 	';
 	
 	override function viewWillUnmount() {
 		draggable.dispose();
+	}
+}
+
+class Drop extends coconut.h2d.View {
+	@:attr var manager:Manager<MyItem, MyResult, PureInteractive>;
+	@:attr var result:MyResult;
+	@:attr var types:ImmutableArray<String>;
+	@:attr var x:Int;
+	@:attr var y:Int;
+	@:computed var droppable:DroppableModel<MyItem, MyResult, {final isOver:Bool; final item:MyItem;}, PureInteractive> = {
+		var model:DroppableModel<MyItem, MyResult, {final isOver:Bool; final item:MyItem;}, PureInteractive> = null;
+		model = new DroppableModel({
+			types: types,
+			manager: manager,
+			canDrop: item -> true,
+			onHover: item -> {},
+			onDrop: item -> result,
+			collect: ctx -> {
+				isOver: ctx.getTargetIds().contains(model.targetId) && ctx.canDropOnTarget(model.targetId),
+				item: ctx.getItem(),
+			}
+		});
+		model;
+	}
+	
+	function render() '
+		<Droppable
+			model=${droppable}
+			renderChildren=${(ref, attrs) -> (
+				<Interactive x=${x} y=${y} width=${100} height=${100} backgroundColor=${attrs.isOver ? 0xFF2222FF : 0xFFAAAAAA} onClick=${trace('clicked')} ref=${ref}>
+					<Text
+						x=${50} 
+						y=${2} 
+						font=${hxd.res.DefaultFont.get()} 
+						text=${'Hovered: ${attrs.isOver ? (attrs.item.color == 0xff00ff00 ? 'green' : 'red') : 'none'}' + '\n\nAccepts:\n' + types.map(v -> v.toLowerCase()).join('\n')}
+						textAlign=${Center}
+						textColor=${attrs.isOver ? 0xffffffff : 0}
+					/>
+				</Interactive>
+			)}
+		/>
+	';
+	
+	override function viewWillUnmount() {
 		droppable.dispose();
 	}
+}
+
+class Dummy extends coconut.h2d.View {
+	@:attr var manager:Manager<MyItem, MyResult, PureInteractive>;
+		
+		
+	function render() '
+		<>
+			<Drop manager=${manager} types=${['RED']} x=${20} y=${200} result=${{bar: 'baz1'}}/>
+			<Drop manager=${manager} types=${['GREEN', 'RED']} x=${140} y=${200} result=${{bar: 'baz2'}}/>
+			<Drop manager=${manager} types=${['GREEN']} x=${260} y=${200} result=${{bar: 'baz3'}}/>
+			<Drag manager=${manager} type="GREEN" item=${{color: 0xff00ff00}}/>
+			<Drag manager=${manager} type="RED" item=${{color: 0xffff0000}}/>
+		</>
+	';
 }
 
 @:observable abstract PureInteractive(Interactive) from Interactive to Interactive {}
