@@ -16,10 +16,7 @@ import why.dragdrop.backend.*;
 class Heaps extends hxd.App {
 	override function init() {
 		
-		final manager = new Manager<MyItem, MyResult, Interactive>();
-		final context = manager.getMonitor();
-		final backend = new HeapsBackend(s2d, context, manager.getActions());
-		manager.setBackend(backend);
+		final manager = new Manager<MyItem, MyResult, Interactive>(manager -> new HeapsBackend(s2d, manager.context, manager.actions));
 		
 		hxd.Window.getInstance().useScreenPixels = false;
 		coconut.ui.Renderer.mount(s2d, '<Dummy manager=${manager}/>');
@@ -50,14 +47,14 @@ class Dummy extends coconut.h2d.View {
 			onDragStart: () -> {foo: 'bar'},
 			onDragEnd: ctx -> {
 				trace(ctx.getDropResult());
-				switch ctx.getSourceClientOffset() {
+				switch ctx.getSourcePosition() {
 					case null: // skip
 					case v: last = v;
 				}
 			},
 			isDragging: item -> item != null,
 			collect: ctx -> {
-				final pos = switch ctx.getSourceClientOffset() {
+				final pos = switch ctx.getSourcePosition() {
 					case null: last;
 					case v: last = v;
 				}

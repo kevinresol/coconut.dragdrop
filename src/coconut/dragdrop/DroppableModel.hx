@@ -19,7 +19,7 @@ class DroppableModel<Item, Result, Attrs, Node> implements coconut.data.Model {
 		drop: (ctx, id) -> onDrop(ctx.getItem()),
 	});
 	
-	@:skipCheck @:computed var registry:Registry<Item, Result> = manager.getRegistry();
+	@:skipCheck @:computed var registry:Registry<Item, Result> = manager.registry;
 	@:computed var targetId:TargetId = {
 		switch ($last) {
 			case Some(id): registry.removeTarget(id);
@@ -30,11 +30,11 @@ class DroppableModel<Item, Result, Attrs, Node> implements coconut.data.Model {
 	@:computed var connection:CallbackLink = {
 		$last.orNull().cancel();
 		if(node == null) null;
-		else manager.getBackend().connectDropTarget(targetId, node, {});
+		else manager.backend.connectDropTarget(targetId, node, {});
 	}
 	@:computed var attrs:Attrs = {
 		connection; // HACK: make it tracked
-		collect == null ? null : collect(manager.getMonitor());
+		collect == null ? null : collect(manager.context);
 	}
 	
 	public function ref(node) 

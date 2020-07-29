@@ -21,7 +21,7 @@ class DraggableModel<Item, Result, Attrs, Node> implements coconut.data.Model {
 		isDragging: (ctx, id) -> isDragging(ctx.getItem()),
 	});
 	
-	@:skipCheck @:computed var registry:Registry<Item, Result> = manager.getRegistry();
+	@:skipCheck @:computed var registry:Registry<Item, Result> = manager.registry;
 	@:computed var sourceId:SourceId = {
 		switch ($last) {
 			case Some(id): registry.removeSource(id);
@@ -32,11 +32,11 @@ class DraggableModel<Item, Result, Attrs, Node> implements coconut.data.Model {
 	@:computed var connection:CallbackLink = {
 		$last.orNull().cancel();
 		if(node == null) null;
-		else manager.getBackend().connectDragSource(sourceId, node, {});
+		else manager.backend.connectDragSource(sourceId, node, {});
 	}
 	@:computed var attrs:Attrs = {
 		connection; // HACK: make it tracked
-		collect == null ? null : collect(manager.getMonitor());
+		collect == null ? null : collect(manager.context);
 	}
 	
 	public function ref(node) 
