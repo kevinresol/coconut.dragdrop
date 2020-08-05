@@ -6,14 +6,15 @@ import tink.state.State;
 
 using tink.CoreApi;
 
-class DroppableModel<Item, Result, Attrs, Node> implements coconut.data.Model {
+class DroppableModel<Item, Result, Attrs, @:skipCheck Node> implements coconut.data.Model {
 	@:constant var types:ImmutableArray<String>;
 	@:constant var manager:Manager<Item, Result, Node>;
-	@:constant var canDrop:DropTargetContext<Item, Result>->Bool;
+	@:constant var canDrop:DropTargetContextWithoutCanDrop<Item, Result>->Bool;
 	@:constant var onHover:DropTargetContext<Item, Result>->Void;
 	@:constant var onDrop:DropTargetContext<Item, Result>->Result;
-	@:constant var collect:Context<Item, Result>->Attrs;
+	@:constant var collect:DropTargetContext<Item, Result>->Attrs;
 	@:constant var context:DropTargetContext<Item, Result> = new DropTargetContext(manager.context);
+	@:constant var ref:coconut.ui.Ref<Node> = function(node) this.node = node;
 	
 	@:editable private var node:Node = null;
 	
@@ -29,7 +30,7 @@ class DroppableModel<Item, Result, Attrs, Node> implements coconut.data.Model {
 			case Some(id): registry.removeTarget(id);
 			case None:
 		}
-		registry.addTarget(types, target);
+		context.targetId.set(registry.addTarget(types, target));
 	}
 	@:computed var connection:CallbackLink = {
 		$last.orNull().cancel();
@@ -37,12 +38,9 @@ class DroppableModel<Item, Result, Attrs, Node> implements coconut.data.Model {
 		else manager.backend.connectDropTarget(targetId, node, {});
 	}
 	@:computed var attrs:Attrs = {
-		connection; // HACK: make it tracked
-		collect == null ? null : collect(manager.context);
+		connection; // HACK: this makes it tracked
+		collect == null ? null : collect(context);
 	}
-	
-	public function ref(node) 
-		this.node = node;
 	
 	public function dispose() {
 		connection.cancel();
@@ -74,13 +72,16 @@ private class Target<Item, Result> implements DropTarget<Item, Result> {
 	}
 }
 
+@:forward(isOver, getItemType, getItem, getDropResult, didDrop, getInitialPosition, getInitialSourcePosition, getSourcePosition, getPosition, getDifferenceFromInitialPosition)
+abstract DropTargetContextWithoutCanDrop<Item, Result>(DropTargetContext<Item, Result>) from DropTargetContext<Item, Result> {}
+
 @:observable
 class DropTargetContext<Item, Result> {
 	
 	public final targetId:State<TargetId>;
 	final context:Context<Item, Result>;
 	
-	var isCallingCanDrop = false;
+	// var isCallingCanDrop = false;
 	
 	public function new(context) {
 		this.targetId = new State(null);
@@ -88,12 +89,13 @@ class DropTargetContext<Item, Result> {
 	}
 	
 	public function canDrop():Bool {
-		if(isCallingCanDrop) throw 'You may not call monitor.canDrop() inside your canDrop() implementation.';
+		// if(isCallingCanDrop) throw 'You may not call monitor.canDrop() inside your canDrop() implementation.';
 
-		return Error.tryFinally(() -> {
-			isCallingCanDrop = true;
+		return
+		// Error.tryFinally(() -> {
+		// 	isCallingCanDrop = true;
 			context.canDropOnTarget(targetId);
-		}, () -> isCallingCanDrop = false);
+		// }, () -> isCallingCanDrop = false);
 	}
 
 	public inline function isOver(?options:{shallow:Bool}):Bool {

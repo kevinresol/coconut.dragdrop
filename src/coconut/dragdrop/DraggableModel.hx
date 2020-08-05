@@ -6,15 +6,16 @@ import tink.state.State;
 
 using tink.CoreApi;
 
-class DraggableModel<Item, Result, Attrs, Node> implements coconut.data.Model {
+class DraggableModel<Item, Result, Attrs, @:skipCheck Node> implements coconut.data.Model {
 	@:constant var type:String;
 	@:constant var manager:Manager<Item, Result, Node>;
-	@:constant var isDragging:DragSourceContext<Item, Result>->Bool;
-	@:constant var canDrag:DragSourceContext<Item, Result>->Bool;
+	@:constant var isDragging:DragSourceContextWithoutIsDragging<Item, Result>->Bool;
+	@:constant var canDrag:DragSourceContextWithoutCanDrag<Item, Result>->Bool;
 	@:constant var onDragStart:DragSourceContext<Item, Result>->Item;
 	@:constant var onDragEnd:DragSourceContext<Item, Result>->Void;
 	@:constant var collect:DragSourceContext<Item, Result>->Attrs;
 	@:constant var context:DragSourceContext<Item, Result> = new DragSourceContext(manager.context);
+	@:constant var ref:coconut.ui.Ref<Node> = function(node) this.node = node;
 	
 	@:editable private var node:Node = null;
 	
@@ -31,9 +32,7 @@ class DraggableModel<Item, Result, Attrs, Node> implements coconut.data.Model {
 			case Some(id): registry.removeSource(id);
 			case None:
 		}
-		var id = registry.addSource(type, source);
-		context.sourceId.set(id);
-		id;
+		context.sourceId.set(registry.addSource(type, source));
 	}
 	@:computed var connection:CallbackLink = {
 		$last.orNull().cancel();
@@ -41,12 +40,8 @@ class DraggableModel<Item, Result, Attrs, Node> implements coconut.data.Model {
 		else manager.backend.connectDragSource(sourceId, node, {});
 	}
 	@:computed var attrs:Attrs = {
-		connection; // HACK: make it tracked
+		connection; // HACK: this makes it tracked
 		collect == null ? null : collect(context);
-	}
-	
-	public function ref(node) {
-		this.node = node;
 	}
 	
 	public function dispose() {
@@ -87,14 +82,20 @@ private class Source<Item, Result> implements DragSource<Item, Result> {
 }
 
 
+
+@:forward(isDragging, isDraggingSource, isOverTarget, getTargetIds, isSourcePublic, getSourceId, canDragSource, canDropOnTarget, getItemType, getItem, getDropResult, didDrop, getInitialPosition, getInitialSourcePosition, getSourcePosition, getPosition, getDifferenceFromInitialPosition)
+abstract DragSourceContextWithoutCanDrag<Item, Result>(DragSourceContext<Item, Result>) from DragSourceContext<Item, Result> {}
+@:forward(canDrag, isDraggingSource, isOverTarget, getTargetIds, isSourcePublic, getSourceId, canDragSource, canDropOnTarget, getItemType, getItem, getDropResult, didDrop, getInitialPosition, getInitialSourcePosition, getSourcePosition, getPosition, getDifferenceFromInitialPosition)
+abstract DragSourceContextWithoutIsDragging<Item, Result>(DragSourceContext<Item, Result>) from DragSourceContext<Item, Result> {}
+
 @:observable
 class DragSourceContext<Item, Result> {
 	
 	public final sourceId:State<SourceId>;
 	final context:Context<Item, Result>;
 	
-	var isCallingCanDrag = false;
-	var isCallingIsDragging = false;
+	// var isCallingCanDrag = false;
+	// var isCallingIsDragging = false;
 	
 	public function new(context) {
 		this.sourceId = new State(null);
@@ -102,22 +103,24 @@ class DragSourceContext<Item, Result> {
 	}
 	
 	public function canDrag():Bool {
-		if(isCallingCanDrag) throw 'You may not call monitor.canDrag() inside your canDrag() implementation.';
+		// if(isCallingCanDrag) throw 'You may not call monitor.canDrag() inside your canDrag() implementation.';
 
-		return Error.tryFinally(() -> {
-			isCallingCanDrag = true;
+		return
+		// Error.tryFinally(() -> {
+		// 	isCallingCanDrag = true;
 			context.canDragSource(sourceId);
-		}, () -> isCallingCanDrag = false);
+		// }, () -> isCallingCanDrag = false);
 	}
 
 	public function isDragging():Bool {
 		if (sourceId == null) return false;
-		if(isCallingIsDragging) throw 'You may not call monitor.isDragging() inside your isDragging() implementation.';
+		// if(isCallingIsDragging) throw 'You may not call monitor.isDragging() inside your isDragging() implementation.';
 		
-		return Error.tryFinally(() -> {
-			isCallingIsDragging = true;
+		return
+		// Error.tryFinally(() -> {
+		// 	isCallingIsDragging = true;
 			context.isDraggingSource(sourceId);
-		}, () -> isCallingIsDragging = false);
+		// }, () -> isCallingIsDragging = false);
 	}
 
 	public inline function isDraggingSource(sourceId:SourceId):Bool {
