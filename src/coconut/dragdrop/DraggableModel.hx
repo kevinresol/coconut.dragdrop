@@ -14,7 +14,6 @@ class DraggableModel<Item, Result, Attrs, @:skipCheck Node> implements coconut.d
 	@:constant var onDragStart:DragSourceContext<Item, Result>->Item;
 	@:constant var onDragEnd:DragSourceContext<Item, Result>->Void;
 	@:constant var collect:DragSourceContext<Item, Result>->Attrs;
-	@:constant var context:DragSourceContext<Item, Result> = new DragSourceContext(manager.context);
 	@:constant var ref:coconut.ui.Ref<Node> = function(node) this.node = node;
 	
 	@:editable private var node:Node = null;
@@ -32,8 +31,9 @@ class DraggableModel<Item, Result, Attrs, @:skipCheck Node> implements coconut.d
 			case Some(id): registry.removeSource(id);
 			case None:
 		}
-		context.sourceId.set(registry.addSource(type, source));
+		registry.addSource(type, source);
 	}
+	@:computed var context:DragSourceContext<Item, Result> = new DragSourceContext(manager.context, sourceId);
 	@:computed var connection:CallbackLink = {
 		$last.orNull().cancel();
 		if(node == null) null;
@@ -91,15 +91,15 @@ abstract DragSourceContextWithoutIsDragging<Item, Result>(DragSourceContext<Item
 @:observable
 class DragSourceContext<Item, Result> {
 	
-	public final sourceId:State<SourceId>;
+	final sourceId:SourceId;
 	final context:Context<Item, Result>;
 	
 	// var isCallingCanDrag = false;
 	// var isCallingIsDragging = false;
 	
-	public function new(context) {
-		this.sourceId = new State(null);
+	public function new(context, sourceId) {
 		this.context = context;
+		this.sourceId = sourceId;
 	}
 	
 	public function canDrag():Bool {

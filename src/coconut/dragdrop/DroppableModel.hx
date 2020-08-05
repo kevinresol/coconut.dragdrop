@@ -13,7 +13,6 @@ class DroppableModel<Item, Result, Attrs, @:skipCheck Node> implements coconut.d
 	@:constant var onHover:DropTargetContext<Item, Result>->Void;
 	@:constant var onDrop:DropTargetContext<Item, Result>->Result;
 	@:constant var collect:DropTargetContext<Item, Result>->Attrs;
-	@:constant var context:DropTargetContext<Item, Result> = new DropTargetContext(manager.context);
 	@:constant var ref:coconut.ui.Ref<Node> = function(node) this.node = node;
 	
 	@:editable private var node:Node = null;
@@ -30,8 +29,9 @@ class DroppableModel<Item, Result, Attrs, @:skipCheck Node> implements coconut.d
 			case Some(id): registry.removeTarget(id);
 			case None:
 		}
-		context.targetId.set(registry.addTarget(types, target));
+		registry.addTarget(types, target);
 	}
+	@:computed var context:DropTargetContext<Item, Result> = new DropTargetContext(manager.context, targetId);
 	@:computed var connection:CallbackLink = {
 		$last.orNull().cancel();
 		if(node == null) null;
@@ -78,14 +78,14 @@ abstract DropTargetContextWithoutCanDrop<Item, Result>(DropTargetContext<Item, R
 @:observable
 class DropTargetContext<Item, Result> {
 	
-	public final targetId:State<TargetId>;
+	final targetId:TargetId;
 	final context:Context<Item, Result>;
 	
 	// var isCallingCanDrop = false;
 	
-	public function new(context) {
-		this.targetId = new State(null);
+	public function new(context, targetId) {
 		this.context = context;
+		this.targetId = targetId;
 	}
 	
 	public function canDrop():Bool {
